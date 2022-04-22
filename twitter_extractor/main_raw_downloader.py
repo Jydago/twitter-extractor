@@ -10,6 +10,11 @@ from twarc.expansions import ensure_flattened
 import utils
 
 
+def without_field(d: dict, field: str):
+    d.pop(field)
+    return d
+
+
 def main():
     t = Twarc2(bearer_token=os.environ['BEARER_TOKEN'])
     query = f"{os.environ['TWEET_SEARCH_KEYWORD']} -is:retweet lang:en"
@@ -31,7 +36,7 @@ def main():
     tweets = []
     max_tweet_pages = int(os.environ['TWEETS_PAGES'])
     for i, page in enumerate(search_results, 1):
-        tweets.extend([tweet for tweet in ensure_flattened(page)])
+        tweets.extend([without_field(tweet, '__twarc') for tweet in ensure_flattened(page)])
 
         if i == max_tweet_pages:
             break
