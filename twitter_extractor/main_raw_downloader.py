@@ -15,16 +15,15 @@ def without_field(d: dict, field: str):
     return d
 
 
-def main():
-    t = Twarc2(bearer_token=os.environ['BEARER_TOKEN'])
-    query = f"{os.environ['TWEET_SEARCH_KEYWORD']} -is:retweet lang:en"
+def get_tweets(t: Twarc2) -> list[dict]:
+    query = f'{os.environ["TWEET_SEARCH_KEYWORD"]} -is:retweet lang:en'
     expansions = ("author_id,referenced_tweets.id,in_reply_to_user_id,"
                   "entities.mentions.username,referenced_tweets.id.author_id")
     tweet_fields = ("id,created_at,text,author_id,in_reply_to_user_id,"
                     "referenced_tweets,entities,public_metrics,lang,reply_settings")
     user_fields = "id,created_at,name,username,public_metrics"
 
-    max_results = int(os.environ['TWEETS_PER_REQUEST'])
+    max_results = int(os.environ["TWEETS_PER_REQUEST"])
     search_results = t.search_recent(
         query=query,
         expansions=expansions,
@@ -34,28 +33,38 @@ def main():
     )
 
     tweets = []
-    max_tweet_pages = int(os.environ['TWEETS_PAGES'])
+    max_tweet_pages = int(os.environ["TWEETS_PAGES"])
     for i, page in enumerate(search_results, 1):
-        tweets.extend([without_field(tweet, '__twarc') for tweet in ensure_flattened(page)])
+        tweets.extend([without_field(tweet, "__twarc") for tweet in ensure_flattened(page)])
 
         if i == max_tweet_pages:
             break
 
-    save_folder = utils.get_project_root() / 'data'
-    save_folder.mkdir(parents=True, exist_ok=True)
+    return tweets
 
-    save_path = save_folder / 'twitter_data.jl'
+
+def save_tweets(tweets: list[dict]):
+    raw_data_folder = utils.get_data_folder() / "raw"
+    raw_data_folder.mkdir(parents=True, exist_ok=True)
+
+    raw_data_file = raw_data_folder / "raw_twitter_data.jl"
     json_dumper = functools.partial(ujson.dumps, ensure_ascii=False, escape_forward_slashes=False)
-    if int(os.environ['COMPRESSED_DATA']):
-        with gzip.open(save_path.with_suffix(".jl.gzip"), "wt") as f:
+    if int(os.environ["COMPRESSED_RAW_DATA"]):
+        with gzip.open(raw_data_file.with_suffix(".jl.gzip"), "wt") as f:
             for tweet in tweets:
                 f.write(json_dumper(tweet) + "\n")
     else:
-        with save_path.open("w") as f:
+        with raw_data_file.open("w") as f:
             for tweet in tweets:
                 f.write(json_dumper(tweet) + "\n")
 
 
-if __name__ == '__main__':
+def main():
+    t = Twarc2(bearer_token=os.environ["BEARER_TOKEN"])
+    tweets = get_tweets(t)
+    save_tweets(tweets)
+
+
+if __name__ == "__main__":
     load_dotenv()
     main()
