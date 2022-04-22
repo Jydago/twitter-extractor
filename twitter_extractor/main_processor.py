@@ -3,12 +3,13 @@ import utils
 import os
 import json_lines
 import polars as pl
+import dateutil.parser
 
 
 def process_tweet(raw_tweet: dict):
     d = dict()
     d["tweet_id"] = raw_tweet["id"]
-    d["created_at"] = raw_tweet["created_at"]
+    d["created_at"] = dateutil.parser.isoparse(raw_tweet["created_at"])
     d["text"] = raw_tweet["text"]
     d["lang"] = raw_tweet["lang"]
     d["reply_settings"] = raw_tweet["reply_settings"]
@@ -21,7 +22,7 @@ def process_tweet(raw_tweet: dict):
 
     author_metric = raw_tweet["author"]["public_metrics"]
     d["author_id"] = raw_tweet["author"]["id"]
-    d["author_created_at"] = raw_tweet["author"]["created_at"]
+    d["author_created_at"] = dateutil.parser.isoparse(raw_tweet["author"]["created_at"])
     d["author_followers_count"] = author_metric["followers_count"]
     d["author_following_count"] = author_metric["following_count"]
     d["tweet_count"] = author_metric["tweet_count"]
