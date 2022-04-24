@@ -12,3 +12,41 @@ services:
       - 5432:5432
     profiles:
       - database_needed
+
+  processing_pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: pipeline_execution
+    volumes:
+      - .:/app
+    profiles:
+      - database_needed
+      - pipeline_execution
+    depends_on:
+      - db
+
+  pipeline_development:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app
+    ports:
+      - 8881:8888
+    profiles:
+      - database_needed
+      - development
+    depends_on:
+      - db
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    volumes:
+      - .:/app
+    profiles:
+      - test
