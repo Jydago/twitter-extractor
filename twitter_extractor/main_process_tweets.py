@@ -1,4 +1,3 @@
-import os
 from typing import Generator
 
 import dateutil.parser
@@ -49,7 +48,6 @@ def process_tweet(raw_tweet: dict) -> dict:
         if "hashtags" in tweet_entities:
             d["hashtags"] = ",".join([tag["tag"] for tag in tweet_entities["hashtags"]])
 
-
     return d
 
 
@@ -61,9 +59,9 @@ def save_processed_tweets_local(df: pl.DataFrame):
     df.write_parquet(processed_data_file)
 
 
-def load_raw_tweets_local(raw_data_is_compressed: bool) -> Generator[dict, None, None]:
+def load_raw_tweets_local() -> Generator[dict, None, None]:
     raw_data_folder = utils.get_data_folder() / "raw"
-    file_name = "raw_twitter_data.jl" + (".gzip" if raw_data_is_compressed else "")
+    file_name = "raw_twitter_data.jsonl.gzip"
     raw_data_file = raw_data_folder / file_name
 
     with json_lines.open(raw_data_file) as f:
@@ -73,11 +71,9 @@ def load_raw_tweets_local(raw_data_is_compressed: bool) -> Generator[dict, None,
 
 def main():
     logger.info("Started process_tweets")
-    raw_data_is_compressed = bool(int(os.environ["COMPRESSED_RAW_DATA"]))
-
     logger.info("Started processing raw tweets")
     processed_tweets = []
-    for raw_tweet in load_raw_tweets_local(raw_data_is_compressed):
+    for raw_tweet in load_raw_tweets_local():
         processed_tweets.append(process_tweet(raw_tweet))
 
     logger.info("Saving processed tweets")

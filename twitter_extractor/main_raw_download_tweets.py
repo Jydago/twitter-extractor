@@ -39,20 +39,15 @@ def get_tweets(t: Twarc2, tweet_search_keyword: str, tweets_per_request: int, ma
     return tweets
 
 
-def save_raw_tweets_local(tweets: list[dict], should_compress_raw_data: bool):
+def save_raw_tweets_local(tweets: list[dict]):
     raw_data_folder = utils.get_data_folder() / "raw"
     raw_data_folder.mkdir(parents=True, exist_ok=True)
 
-    raw_data_file = raw_data_folder / "raw_twitter_data.jl"
+    raw_data_file = raw_data_folder / "raw_twitter_data.jsonl.gzip"
     json_dumper = functools.partial(ujson.dumps, ensure_ascii=False, escape_forward_slashes=False)
-    if should_compress_raw_data:
-        with gzip.open(raw_data_file.with_suffix(".jl.gzip"), "wt") as f:
-            for tweet in tweets:
-                f.write(json_dumper(tweet) + "\n")
-    else:
-        with raw_data_file.open("w") as f:
-            for tweet in tweets:
-                f.write(json_dumper(tweet) + "\n")
+    with gzip.open(raw_data_file, "wt") as f:
+        for tweet in tweets:
+            f.write(json_dumper(tweet) + "\n")
 
 
 def main():
@@ -61,13 +56,12 @@ def main():
     tweet_search_keyword = os.environ["TWEET_SEARCH_KEYWORD"]
     tweets_per_request = int(os.environ["TWEETS_PER_REQUEST"])
     max_tweet_requests = int(os.environ["TWEETS_PAGES"])
-    should_compress_raw_data = bool(int(os.environ["COMPRESSED_RAW_DATA"]))
 
     t = Twarc2(bearer_token=twitter_bearer_token)
     logger.info("Downloading raw tweets")
     tweets = get_tweets(t, tweet_search_keyword, tweets_per_request, max_tweet_requests)
     logger.info("Saving raw tweets")
-    save_raw_tweets_local(tweets, should_compress_raw_data)
+    save_raw_tweets_local(tweets)
 
     logger.info("Finished raw_download_tweets")
 
