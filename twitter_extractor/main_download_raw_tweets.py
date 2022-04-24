@@ -1,8 +1,5 @@
-import functools
-import gzip
 import os
 
-import ujson
 from dotenv import load_dotenv
 from loguru import logger
 from twarc.client2 import Twarc2
@@ -43,11 +40,8 @@ def save_raw_tweets_local(tweets: list[dict]):
     raw_data_folder = utils.get_data_folder() / "raw"
     raw_data_folder.mkdir(parents=True, exist_ok=True)
 
-    raw_data_file = raw_data_folder / "raw_twitter_data.jsonl.gzip"
-    json_dumper = functools.partial(ujson.dumps, ensure_ascii=False, escape_forward_slashes=False)
-    with gzip.open(raw_data_file, "wt") as f:
-        for tweet in tweets:
-            f.write(json_dumper(tweet) + "\n")
+    raw_data_file = raw_data_folder / "raw_twitter_data"
+    utils.save_json_lines(raw_data_file, tweets)
 
 
 def main():

@@ -1,0 +1,2 @@
+class FailedDataTestError(Exception):
+    pass
