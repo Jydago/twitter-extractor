@@ -63,6 +63,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # TODO: Potential improvement: UPSERT based on retrieved_date, search_keyword, and tweet_id instead of just INSERT
     load_dotenv()
     main()

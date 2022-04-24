@@ -59,12 +59,9 @@ CMD ["poetry", "run", "jupyter", "notebook", "--no-browser", "--allow-root", "--
 
 ###
 FROM dev-base as test
-# Copy all dependencies, including development dependencies from dev-base
-#COPY --from=builder-base $POETRY_VIRTUALENVS_PATH $POETRY_VIRTUALENVS_PATH
 
 WORKDIR /app
 CMD ["poetry", "run", "pytest"]
-
 
 
 ###
