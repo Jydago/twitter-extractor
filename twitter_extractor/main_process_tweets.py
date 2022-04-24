@@ -1,18 +1,24 @@
-from dotenv import load_dotenv
-import utils
 import os
+from typing import Generator
+
+import dateutil.parser
 import json_lines
 import polars as pl
-import dateutil.parser
+from dotenv import load_dotenv
+from loguru import logger
+
+from twitter_extractor import utils
 
 
-def process_tweet(raw_tweet: dict):
+def process_tweet(raw_tweet: dict) -> dict:
     d = dict()
     d["tweet_id"] = raw_tweet["id"]
     d["created_at"] = dateutil.parser.isoparse(raw_tweet["created_at"])
     d["text"] = raw_tweet["text"]
     d["lang"] = raw_tweet["lang"]
     d["reply_settings"] = raw_tweet["reply_settings"]
+    d["meta_search_keywords"] = raw_tweet["meta_search_keywords"]
+    d["meta_tweet_retrieved_at"] = dateutil.parser.isoparse(raw_tweet["__twarc"]["retrieved_at"])
 
     public_metrics = raw_tweet["public_metrics"]
     d["like_count"] = public_metrics["like_count"]
@@ -25,7 +31,7 @@ def process_tweet(raw_tweet: dict):
     d["author_created_at"] = dateutil.parser.isoparse(raw_tweet["author"]["created_at"])
     d["author_followers_count"] = author_metric["followers_count"]
     d["author_following_count"] = author_metric["following_count"]
-    d["tweet_count"] = author_metric["tweet_count"]
+    d["author_tweet_count"] = author_metric["tweet_count"]
     d["author_listed_count"] = author_metric["listed_count"]
 
     if "referenced_tweets" in raw_tweet:
@@ -43,25 +49,41 @@ def process_tweet(raw_tweet: dict):
         if "hashtags" in tweet_entities:
             d["hashtags"] = ",".join([tag["tag"] for tag in tweet_entities["hashtags"]])
 
+
     return d
 
 
-def main():
-    raw_data_folder = utils.get_data_folder() / "raw"
-    file_name = "raw_twitter_data.jl" + (".gzip" if int(os.environ["COMPRESSED_RAW_DATA"]) else "")
-    raw_data_file = raw_data_folder / file_name
-
-    all_data = []
-    with json_lines.open(raw_data_file) as f:
-        for i, raw_tweet in enumerate(f, 1):
-            all_data.append(process_tweet(raw_tweet))
-
-    df = pl.DataFrame(all_data)
+def save_processed_tweets_local(df: pl.DataFrame):
     processed_data_folder = utils.get_data_folder() / "processed"
     processed_data_folder.mkdir(parents=True, exist_ok=True)
     processed_data_file = processed_data_folder / "processed_twitter_data.parquet"
     # Can't save as csv because of twitter text including \n
     df.write_parquet(processed_data_file)
+
+
+def load_raw_tweets_local(raw_data_is_compressed: bool) -> Generator[dict, None, None]:
+    raw_data_folder = utils.get_data_folder() / "raw"
+    file_name = "raw_twitter_data.jl" + (".gzip" if raw_data_is_compressed else "")
+    raw_data_file = raw_data_folder / file_name
+
+    with json_lines.open(raw_data_file) as f:
+        for raw_tweet in f:
+            yield raw_tweet
+
+
+def main():
+    logger.info("Started process_tweets")
+    raw_data_is_compressed = bool(int(os.environ["COMPRESSED_RAW_DATA"]))
+
+    logger.info("Started processing raw tweets")
+    processed_tweets = []
+    for raw_tweet in load_raw_tweets_local(raw_data_is_compressed):
+        processed_tweets.append(process_tweet(raw_tweet))
+
+    logger.info("Saving processed tweets")
+    df = pl.DataFrame(processed_tweets)
+    save_processed_tweets_local(df)
+    logger.info("Finished process_tweets")
 
 
 if __name__ == "__main__":
