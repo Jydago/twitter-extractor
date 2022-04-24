@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: my_db_password
+      POSTGRES_DB: twitter
+    volumes:
+      - ./init-schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - 5432:5432
+    profiles:
+      - database_needed
